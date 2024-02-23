@@ -39,6 +39,7 @@ import com.gulali.dein.helper.BluetoothReceiver
 import com.gulali.dein.helper.Helper
 import com.gulali.dein.helper.Printer
 import com.gulali.dein.helper.SearchProductByName
+import com.gulali.dein.helper.ShareStructPayment
 import com.gulali.dein.models.constants.Constants
 import com.gulali.dein.models.dto.DateTime
 import com.gulali.dein.models.dto.DtoPercentNominal
@@ -69,6 +70,7 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
     private val repositoryProduct: RepositoryProduct by inject()
     private val repositoryCart: RepositoryCart by inject()
     private val repositoryOwner: RepositoryOwner by inject()
+    private val shareStruckPayment: ShareStructPayment by inject()
 
     // view model
     private val viewModelTransaction: ViewModelTransaction by inject()
@@ -200,8 +202,8 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
 
         initPaymentDisplay()
         initProcessTransaction()
-        initDialogExit(true)
-        initDialogExit(false)
+        initDialogExit()
+        initDialogExitIfSuccess()
         initBackPressed()
     }
 
@@ -384,7 +386,6 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
                 alertDialog.dismiss()
             }
         }
-
         pdCancel.setOnClickListener {
             alertDialog.dismiss()
         }
@@ -627,7 +628,6 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
                 paymentDisplay.showNominal.text = s
             }
         }
-
         paymentDisplay.pDisPercent.addTextChangedListener(SetPercent(
             edtPercent = paymentDisplay.pDisPercent,
             edtNominal = paymentDisplay.pDisNominal,
@@ -637,7 +637,6 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
             dataExchange = viewModelTransaction.exchangeDiscount,
             isDiscount = true
         ))
-
         paymentDisplay.pDisNominal.addTextChangedListener(SetNominal(
             edtPercent = paymentDisplay.pDisPercent,
             edtNominal = paymentDisplay.pDisNominal,
@@ -647,7 +646,6 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
             dataExchange = viewModelTransaction.exchangeDiscount,
             isDiscount = true
         ))
-
         paymentDisplay.pTaxPercent.addTextChangedListener(SetPercent(
             edtPercent = paymentDisplay.pTaxPercent,
             edtNominal = paymentDisplay.pTaxNominal,
@@ -758,10 +756,7 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
     private fun initBackPressed() {
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (isPaymentSuccess) {
-                    alertDialogForExitSuccess?.show()
-                    return
-                }
+                if (isPaymentSuccess) return
                 val statusCart = repositoryCart.getTotalPriceAndItem(viewModelTransaction.idTransaction) ?: return setResult()
                 if (statusCart.itemCount <= 0) return setResult()
                 if (binding.bodyTransactionAdd.visibility == View.VISIBLE) {
@@ -785,45 +780,56 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
         onBackPressedDispatcher.addCallback(this@TransactionAdd, callback)
     }
 
-    private fun initDialogExit(isSuccess: Boolean) {
+    private fun initDialogExit() {
         val builder = AlertDialog.Builder(this@TransactionAdd)
-        val dialogLayout: View = if (isSuccess) {
-            layoutInflater.inflate(R.layout.dialog_exit_transaction_success, null)
-        } else {
-            layoutInflater.inflate(R.layout.dialog_exit_transaction, null)
-        }
+        val dialogLayout: View = layoutInflater.inflate(R.layout.dialog_exit_transaction, null)
         val btnOk = dialogLayout.findViewById<Button>(R.id.exit_yes)
         val btnCancel = dialogLayout.findViewById<Button>(R.id.exit_no)
         builder.setView(dialogLayout)
+        alertDialogForExit = builder.create() // Create the AlertDialog
+        alertDialogForExit?.setCanceledOnTouchOutside(false)
+        alertDialogForExit?.setOnCancelListener{ return@setOnCancelListener }
 
-        if (isSuccess) {
-            alertDialogForExitSuccess = builder.create() // Create the AlertDialog
-            alertDialogForExitSuccess?.setCanceledOnTouchOutside(false)
-            alertDialogForExitSuccess?.setOnCancelListener{ return@setOnCancelListener }
-
-            btnOk.setOnClickListener {
-                alertDialogForExitSuccess?.dismiss()
-                setResult()
-            }
-            btnCancel.setOnClickListener {
-                alertDialogForExitSuccess?.dismiss()
-            }
-        } else {
-            alertDialogForExit = builder.create() // Create the AlertDialog
-            alertDialogForExit?.setCanceledOnTouchOutside(false)
-            alertDialogForExit?.setOnCancelListener{ return@setOnCancelListener }
-
-            btnOk.setOnClickListener {
-                alertDialogForExit?.dismiss()
-                setResult()
-            }
-            btnCancel.setOnClickListener {
-                alertDialogForExit?.dismiss()
-            }
+        btnOk.setOnClickListener {
+            alertDialogForExit?.dismiss()
+            setResult()
+        }
+        btnCancel.setOnClickListener {
+            alertDialogForExit?.dismiss()
         }
     }
 
+    private fun initDialogExitIfSuccess() {
+        val builder = AlertDialog.Builder(this@TransactionAdd)
+        val dialogLayout: View = layoutInflater.inflate(R.layout.dialog_exit_transaction_success, null)
+        val btnFinish = dialogLayout.findViewById<Button>(R.id.btn_finish)
+        val btnShare = dialogLayout.findViewById<Button>(R.id.btn_share)
+        val btnPrint = dialogLayout.findViewById<Button>(R.id.btn_print)
+        builder.setView(dialogLayout)
+        alertDialogForExitSuccess = builder.create() // Create the AlertDialog
+        alertDialogForExitSuccess?.setCancelable(false)
+        alertDialogForExitSuccess?.setCanceledOnTouchOutside(false)
+
+        btnFinish.setOnClickListener {
+            alertDialogForExit?.dismiss()
+            setResult()
+        }
+
+        btnShare.setOnClickListener {
+            if (!isPaymentSuccess) return@setOnClickListener
+            shareStruckPayment.share(
+                view = transactionSuccess.bodyTransactionSuccess,
+                idTransaction= viewModelTransaction.idTransaction,
+                message= "This receipt is valid proof of payment from ${viewModelTransaction.owner.shop}",
+                shareResultLauncher= shareResultLauncher
+            )
+        }
+
+        btnPrint.setOnClickListener { printTransaction() }
+    }
+
     private fun processPayment() {
+        if (isPaymentSuccess) return
         if (viewModelTransaction.dtoTransaction.grandTotal <= 0) return setResult()
         val currentDate = helper.getCurrentDate()
         viewModelTransaction.date = DateTime(
@@ -876,19 +882,20 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
         showDialogTurnOnBluetooth()
 
         isPaymentSuccess = true
-        helper.generateTOA(this@TransactionAdd, "transaction success", true)
-        transactionSuccess.tdtProcess.visibility = View.GONE
-        transactionSuccess.cntDIaog.visibility = View.VISIBLE
-        transactionSuccess.paymentStatus.visibility = View.VISIBLE
+        if (alertDialogForExitSuccess == null) {
+            helper.generateTOA(this@TransactionAdd, "transaction success", true)
+            setResult()
+            return
+        } else {
+            alertDialogForExitSuccess?.show()
+        }
 
         // header
         val dateTimeStr = helper.formatSpecificDate(helper.unixTimestampToDate(viewModelTransaction.date.created))
+        transactionSuccess.tdtProcess.visibility = View.GONE
         transactionSuccess.dateOrder.text = dateTimeStr.date
         transactionSuccess.orederId.text = viewModelTransaction.idTransaction
         transactionSuccess.orderTime.text = dateTimeStr.time
-
-        transactionSuccess.btnBackHome.setOnClickListener{ setResult() }
-        transactionSuccess.btnPrintTrs.setOnClickListener { printTransaction() }
     }
 
     private fun printTransaction() {
@@ -995,6 +1002,11 @@ class TransactionAdd : AppCompatActivity(), BluetoothStateListener {
         btnCancel.setOnClickListener {
             alertDialogForShowTurnOnBluetooth?.dismiss()
         }
+    }
+
+    private val shareResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
+        val paymentName = "${viewModelTransaction.idTransaction}.jpeg"
+        shareStruckPayment.deleteImageFromGallery(paymentName)
     }
 
     override fun onBluetoothConnected() {}

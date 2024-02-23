@@ -3,6 +3,7 @@ package com.gulali.dein.service
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +16,7 @@ import com.gulali.dein.models.constants.Constants
 import com.gulali.dein.models.dto.contract.DtoContractProductDetail
 import com.gulali.dein.models.viewmodels.ViewModelProductDetail
 import com.gulali.dein.repositories.RepositoryProduct
+import com.gulali.dein.repositories.RepositoryTransactionItem
 import org.koin.android.ext.android.inject
 
 class ProductDetail : AppCompatActivity() {
@@ -24,6 +26,7 @@ class ProductDetail : AppCompatActivity() {
     private val helper: Helper by inject()
     private val constant: Constants by inject()
     private val repositoryProduct: RepositoryProduct by inject()
+    private val repositoryTransactionItem: RepositoryTransactionItem by inject()
 
     // contract
     private lateinit var contractProductUpdate: ActivityResultLauncher<Int>
@@ -45,6 +48,8 @@ class ProductDetail : AppCompatActivity() {
             return
         }
 
+        viewModelProductDetail.soldOut = repositoryTransactionItem.getSoldOut(viewModelProductDetail.productID)
+
         contractProductUpdate = registerForActivityResult(ContractProductUpdate(constant)) { result -> handlerResultIntent(result) }
         contractProductStock = registerForActivityResult(ContractProductStock(constant)) { result -> handlerResultIntent(result) }
 
@@ -54,6 +59,13 @@ class ProductDetail : AppCompatActivity() {
             Intent(this@ProductDetail, StockHistory::class.java).also {
                 it.putExtra(constant.productID(), viewModelProductDetail.productID)
                 startActivity(it)
+            }
+        }
+        binding.btnDescrp.setOnClickListener {
+            if (binding.detailInfo.visibility == View.GONE) {
+                binding.detailInfo.visibility = View.VISIBLE
+            } else {
+                binding.detailInfo.visibility = View.GONE
             }
         }
 
@@ -73,13 +85,15 @@ class ProductDetail : AppCompatActivity() {
     private fun passingDataToView() {
         val product = repositoryProduct.getProductByID(viewModelProductDetail.productID)
         if (product == null) {
-            finish()
+            setResult()
         } else {
             viewModelProductDetail.dataProduct = product
             // passing data to view
-            binding.pvName.text = viewModelProductDetail.dataProduct.name
+            binding.pvName.text = helper.capitaliseEachWord(viewModelProductDetail.dataProduct.name)
             binding.pvPrice.text = helper.intToRupiah(viewModelProductDetail.dataProduct.price)
             binding.pvStock.text = viewModelProductDetail.dataProduct.stock.toString()
+            binding.tmplSoldOut.text = viewModelProductDetail.soldOut.toString()
+            binding.detailInfoMsg.text = viewModelProductDetail.dataProduct.info
 
             val uri = helper.getUriFromGallery(contentResolver, viewModelProductDetail.dataProduct.img)
             if (uri != null) {

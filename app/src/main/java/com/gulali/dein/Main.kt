@@ -1,10 +1,13 @@
 package com.gulali.dein
 
 import android.app.Application
+import android.view.View
+import androidx.core.view.WindowInsetsCompat
 import com.gulali.dein.config.AdapterDb
 import com.gulali.dein.config.Permission
 import com.gulali.dein.helper.BarcodeScanner
 import com.gulali.dein.helper.Helper
+import com.gulali.dein.helper.ShareStructPayment
 import com.gulali.dein.models.constants.Constants
 import com.gulali.dein.models.viewmodels.ViewModelBluetoothUpdate
 import com.gulali.dein.models.viewmodels.VIewModelHome
@@ -94,10 +97,10 @@ class Main : Application() {
         single { Helper() }
         single { Constants() }
         single { Permission(androidContext(), get()) }
+        single { ShareStructPayment(androidContext(), get()) }
 
         single { get<BarcodeScanner>().initBarcodeScanner(androidContext()) }
 
-        viewModel { VIewModelHome() }
         viewModel { ViewModelUnit() }
         viewModel { ViewModelCategory() }
         viewModel { ViewModelProductAdd() }

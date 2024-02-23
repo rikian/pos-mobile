@@ -6,11 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.compose.ui.text.capitalize
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.gulali.dein.R
 import com.gulali.dein.helper.Helper
 import com.gulali.dein.models.dto.DtoProduct
+import java.util.Locale
 
 class AdapterProductDisplay(
     private val products: MutableList<DtoProduct>,
@@ -43,7 +45,7 @@ class AdapterProductDisplay(
 
         val product = products[position]
         holder.pId.text = product.id.toString()
-        holder.pName.text = product.name
+        holder.pName.text = helper.capitaliseEachWord(product.name.trim())
         holder.stDesc.text = stockStr
         holder.stDesc.textColors.defaultColor
         holder.pStock.text = product.stock.toString()

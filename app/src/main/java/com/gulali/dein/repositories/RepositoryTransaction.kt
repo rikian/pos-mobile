@@ -4,6 +4,8 @@ import com.gulali.dein.contracts.dao.DaoHistoryStock
 import com.gulali.dein.contracts.dao.DaoProduct
 import com.gulali.dein.contracts.dao.DaoTransaction
 import com.gulali.dein.contracts.dao.DaoTransactionItem
+import com.gulali.dein.models.dto.DtoTransactionFilter
+import com.gulali.dein.models.dto.DtoTransactionWithCount
 import com.gulali.dein.models.entities.EntityHistoryStock
 import com.gulali.dein.models.entities.EntityTransaction
 import com.gulali.dein.models.entities.EntityTransactionItem
@@ -30,5 +32,13 @@ class RepositoryTransaction(private val daoTransaction: DaoTransaction, private 
 
     fun getTransactionByID(transactionID: String): EntityTransaction {
         return daoTransaction.getTransactionByID(transactionID)
+    }
+
+    fun getDataTransactionWithCountAndSum(index: Int, limit: Int): DtoTransactionWithCount {
+        return daoTransaction.getDataTransactionWithCountAndSum(index, limit)
+    }
+
+    fun getDataTransactionFilterWithCountAndSum(p: DtoTransactionFilter): DtoTransactionWithCount {
+        return daoTransaction.getDataTransactionFilterWithCountAndSum(p)
     }
 }

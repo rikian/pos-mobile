@@ -9,4 +9,12 @@ class RepositoryTransactionItem(private val daoTransactionItem: DaoTransactionIt
     fun getTransactionItemById(transactionID: String): MutableList<EntityTransactionItem> {
         return daoTransactionItem.getTransactionItemById(transactionID)
     }
+
+    fun getSoldOut(productID: Int): Int {
+        return try {
+            daoTransactionItem.getSoldOut(productID)
+        } catch (e: Exception) {
+            0
+        }
+    }
 }

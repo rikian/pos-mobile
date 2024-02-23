@@ -13,7 +13,7 @@ import com.gulali.dein.models.entities.EntityTransaction
 class AdapterTransactionDisplay(
     private val context: Context,
     private val helper: Helper,
-    private val isSearch: Boolean,
+    private val needNewLabel: Boolean,
     private val transactions: List<EntityTransaction>
 ): RecyclerView.Adapter<AdapterTransactionDisplay.TransactionDisplayViewHolder>() {
     private var itemClickListener: OnItemClickListener? = null
@@ -47,7 +47,7 @@ class AdapterTransactionDisplay(
             itemClickListener?.onItemClick(position)
         }
 
-        if (!isSearch) {
+        if (needNewLabel) {
             if (position == 0) {
                 holder.isNew.visibility = View.VISIBLE
             }

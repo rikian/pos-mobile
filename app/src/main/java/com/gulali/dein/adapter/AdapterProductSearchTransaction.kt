@@ -47,7 +47,7 @@ class AdapterProductSearchTransaction(
         }
         val product = products[position]
         holder.pId.text = product.id.toString()
-        holder.pName.text = product.name
+        holder.pName.text = helper.capitaliseEachWord(product.name)
         holder.pStock.text = product.stock.toString()
         holder.pPrice.text = helper.intToRupiah(product.price)
         val uri = helper.getUriFromGallery(ctx.contentResolver, product.img)

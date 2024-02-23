@@ -218,7 +218,7 @@ class ProductUpdate : AppCompatActivity() {
                 unit= 0,
                 purchase= viewModelProductUpdate.dataProduct.purchase,
                 price= viewModelProductUpdate.dataProduct.price,
-                info= "",
+                info= viewModelProductUpdate.dataProduct.info,
                 date= DateTime(
                     created = viewModelProductUpdate.dataProduct.created,
                     updated = viewModelProductUpdate.dataProduct.updated
@@ -292,6 +292,9 @@ class ProductUpdate : AppCompatActivity() {
                 helper.generateTOA(this, "Price cannot be empty", false)
                 return
             }
+
+            // info
+            viewModelProductUpdate.entityProduct.info = binding.description.text.toString()
 
             val currentDate = helper.getCurrentDate()
             viewModelProductUpdate.entityProduct.date.updated = currentDate

@@ -11,6 +11,9 @@ interface DaoTransactionItem {
     @Query("SELECT * FROM transaction_item WHERE transactionID= :transactionID")
     fun getTransactionItemById(transactionID: String): MutableList<EntityTransactionItem>
 
+    @Query("SELECT SUM(quantity) FROM transaction_item WHERE productID=:productID")
+    fun getSoldOut(productID: Int): Int
+
     @Insert
     fun insertTransactionItems(data: EntityTransactionItem): Long
 

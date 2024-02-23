@@ -10,6 +10,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.provider.MediaStore
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -21,7 +22,6 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.gulali.dein.R
 import com.gulali.dein.models.dto.DateTimeFormat
-import com.gulali.dein.models.dto.DtoTransaction
 import com.gulali.dein.service.Registration
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -52,6 +52,17 @@ class Helper {
         return this.dateToUnixTimestamp(date)
     }
 
+    fun getCurrentEndDate(): Long {
+        val calendar = Calendar.getInstance()
+        // Set the time to 23:59:59 for the current day
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
+        val date = calendar.time
+        return dateToUnixTimestamp(date)
+    }
+
     fun formatSpecificDate(date: Date): DateTimeFormat{
         val d = SimpleDateFormat("EEEE, dd MMMM yyyy", Locale.getDefault()).format(date)
         val t = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(date)
@@ -64,6 +75,48 @@ class Helper {
 
     fun unixTimestampToDate(timestamp: Long): Date {
         return Date(timestamp * 1000) // Convert seconds to milliseconds
+    }
+
+    fun parseDateStrToUnix(dateString: String): Long {
+        return try {
+            // Define the date format
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+            // Parse the string to a Date object
+            val date = dateFormat.parse(dateString)
+
+            // If the date is not null, convert it to Unix timestamp in seconds
+            date?.let {
+                return@let dateToUnixTimestamp(it)
+            } ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
+    fun parseToEndDateUnix(dateString: String): Long {
+        return try {
+            // Define the date format
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+            // Parse the string to a Date object
+            val date = dateFormat.parse(dateString)
+
+            // If the date is not null, set the time to the end of the day
+            date?.let {
+                val calendar = Calendar.getInstance().apply {
+                    time = it
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }
+
+                return dateToUnixTimestamp(calendar.time)
+            } ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
     }
 
     fun generateUniqueImgName(): String {
@@ -209,7 +262,7 @@ class Helper {
         return discountNominal.toInt()
     }
 
-    fun getTotalPriceAfterDiscount(discount: Double, price: Int, qty: Int): Int {
+    private fun getTotalPriceAfterDiscount(discount: Double, price: Int, qty: Int): Int {
         val totalPrice = price * qty
         val discountNominal = getDiscountNominal(discount, price, qty)
         return totalPrice - discountNominal
@@ -243,9 +296,9 @@ class Helper {
             } else {
                 val totalPriceAfterDiscount = getTotalPriceAfterDiscount(discount, price, qty)
                 val totalPriceAfterDiscountStr = if (needRp) {
-                    "Rp ${this.intToRupiah(totalPriceAfterDiscount.toInt())}"
+                    "Rp ${this.intToRupiah(totalPriceAfterDiscount)}"
                 } else {
-                    this.intToRupiah(totalPriceAfterDiscount.toInt())
+                    this.intToRupiah(totalPriceAfterDiscount)
                 }
                 targetBeforeDiscount.paintFlags = targetBeforeDiscount.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
                 targetBeforeDiscount.setTextColor(ContextCompat.getColor(ctx, R.color.text_gray))
@@ -276,5 +329,23 @@ class Helper {
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
         activity.startActivity(intent)
         activity.finish()
+    }
+
+    fun hideKeyboard(view: View, ctx: Context) {
+        try {
+            val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+        } catch (e: Exception) {
+            this.generateTOA(ctx, e.message.toString(), true)
+        }
+    }
+
+    fun capitaliseEachWord(data: String): String {
+        return try {
+            val regex = "\\b[a-z]".toRegex()
+            data.replace(regex) { it.value.uppercase() }
+        } catch (e: Exception) {
+            data.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+        }
     }
 }
